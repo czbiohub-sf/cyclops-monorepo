@@ -1,0 +1,24 @@
+[submodule "cyclops_process"]
+	path = cyclops_process
+	url = git@github.com:czbiohub-sf/cyclops-process.git
+	branch = main
+[submodule "cyclops_utils"]
+	path = cyclops_utils
+	url = git@github.com:czbiohub-sf/cyclops-utils.git
+	branch = main
+[submodule "cyclops_model"]
+	path = cyclops_model
+	url = git@github.com:czbiohub-sf/cyclops-model.git
+	branch = main
+[submodule "organelle_profiler"]
+	path = organelle_profiler
+	url = git@github.com:czbiohub-sf/organelle-profiler.git
+	branch = main
+[submodule "ops_paper_analysis"]
+	path = ops_paper_analysis
+	url = git@github.com:czbiohub-sf/ops-paper-analysis.git
+	branch = main
+[submodule "stitching"]
+	path = stitching
+	url = git@github.com:ahillsley/stitching.git
+	branch = beta/nextflow_zarrv3_changes

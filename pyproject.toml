@@ -1,0 +1,90 @@
+[project]
+name = "cyclops-monorepo"
+version = "0.1.0"
+description = "cyclOPS (Optical Pooled Screening) image processing, modeling, and analysis mono-repo"
+requires-python = ">=3.12,<3.13"
+authors = [
+    { name = "Alex Hillsley", email = "alexander.hillsley@czbiohub.org" },
+    { name = "Gav Sturm", email = "gav.sturm@czbiohub.org" },
+    { name = "Mark Potts", email = "mark.potts@czbiohub.org" },
+]
+dependencies = [
+    # The six workspace members. Each is a git submodule pinned in .gitmodules
+    # and installed editable by `uv sync`; see [tool.uv.sources] below.
+    "cyclops_process",
+    "cyclops_utils",
+    "cyclops_model",
+    "organelle_profiler",
+    "ops-paper-analysis",
+    "stitch",
+    # CUDA 12.8 nvrtc so CuPy can JIT kernels for sm_120 (RTX PRO 6000 Blackwell).
+    # nvrtc 12.6 only targets up to sm_90 -> CUDA_ERROR_NO_BINARY_FOR_GPU there.
+    # Declared here rather than in a member because it is a property of the
+    # cluster's GPUs, not of any one package.
+    "nvidia-cuda-nvrtc-cu12>=12.8",
+    # Declared here ONLY so the [tool.uv.sources] cu128 pin below applies to it.
+    # No member depends on torchvision directly -- it arrives transitively via
+    # cellpose, timm, cytoself, byol-pytorch and spotiflow -- and uv sources are
+    # not applied to purely transitive dependencies. Without this line it silently
+    # resolves from PyPI, whose wheel is cu126-built, so its compiled ops (nms,
+    # roi_align, deform_conv) carry no sm_120 kernels. The old ops_monorepo had
+    # the same source pin and did resolve torchvision from PyPI for this reason.
+    "torchvision",
+]
+
+# Every extra here forwards to extras declared by the members, so the members
+# stay the single source of truth for their own optional dependencies. Keep
+# `all` in sync with the extras defined above it -- the previous monorepo root
+# referenced a `viz` extra it never defined, which broke `uv sync --all-extras`.
+[project.optional-dependencies]
+gpu = ["cyclops_utils[gpu]"]
+hpc = ["cyclops_utils[hpc]"]
+slack = ["cyclops_utils[slack]"]
+viz = ["cyclops_process[viz]", "organelle_profiler[interactive]"]
+model = ["cyclops_process[model]", "cyclops_model[models,classifier]"]
+tracking = ["cyclops_process[tracking]"]
+rapids = ["cyclops_process[rapids]", "organelle_profiler[rapids]"]
+all = ["cyclops-monorepo[gpu,hpc,slack,viz,model,tracking,rapids]"]
+
+[tool.uv]
+environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
+prerelease = "if-necessary-or-explicit"
+override-dependencies = [
+    # cytoself (a cyclops_model git dependency) pins matplotlib==3.10.3.
+    "matplotlib>=3.10.5",
+    # organelle_profiler and cyclops_model still allow iohub 0.3.0a7; cyclops_utils
+    # and cyclops_process require >=0.3.7 (OME 0.4 support, and
+    # iohub.core.registry.set_default_implementation). Bind the whole graph to it.
+    "iohub>=0.3.7",
+]
+
+[tool.uv.workspace]
+members = [
+    "cyclops_process",
+    "cyclops_utils",
+    "cyclops_model",
+    "organelle_profiler",
+    "ops_paper_analysis",
+    "stitching",
+]
+
+[tool.uv.sources]
+cyclops_process = { workspace = true }
+cyclops_utils = { workspace = true }
+cyclops_model = { workspace = true }
+organelle_profiler = { workspace = true }
+ops-paper-analysis = { workspace = true }
+stitch = { workspace = true }
+# Not published to PyPI. Both cyclops_model and organelle_profiler[rapids]
+# depend on it, and organelle_profiler names it without a URL, so the source
+# has to be declared once here for the workspace to resolve consistently.
+maayanlab-bioinformatics = { git = "https://github.com/MaayanLab/maayanlab-bioinformatics.git" }
+# Pull torch/torchvision from the CUDA 12.8 wheels (they include sm_120 /
+# Blackwell kernels). The default PyPI wheels are cu126 and stop at sm_90.
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
